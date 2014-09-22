@@ -425,7 +425,7 @@ public class MultiPass extends javax.swing.JFrame {
             "by copying something else or by clicking \"Clear Clipboard\".",
             "\n", "How it works:", "\n",
             "To generate passwords, Multipass concatenates the master password",
-            "and the site name, separated by a space. It then uses the "
+            "and the identifier, separated by a space. It then uses the "
             + ALGORITHM,
             "algorithm to make a hash of the concatenation. The hash is",
             "represented as a hexadecimal number, padded with leading zeroes to",
