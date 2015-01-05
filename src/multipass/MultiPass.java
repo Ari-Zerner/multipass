@@ -1,5 +1,5 @@
 /*
- * Multipass v1.4
+ * Multipass v1.4.1
  * Copyright 2015 Ari Zerner.
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -371,7 +371,7 @@ public class MultiPass extends javax.swing.JFrame {
         char[] master = masterField.getPassword();
         String identifier = identifierField.getText();
         if (master.length > 0 && identifier.length() > 0) {
-            if (confirmMasterPassword()) {
+            if (!confirmCheckBox.isSelected() || confirmMasterPassword()) {
                 confirmCheckBox.setForeground(Color.black);
                 String generated;
                 if (pinCheckBox.isSelected()) {
@@ -387,6 +387,7 @@ public class MultiPass extends javax.swing.JFrame {
                 passwordField.setText("");
             }
         } else {
+            confirmCheckBox.setForeground(Color.black);
             passwordField.setText("");
         }
         Arrays.fill(master, '\0');
@@ -429,7 +430,7 @@ public class MultiPass extends javax.swing.JFrame {
 
     private void aboutButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutButtonActionPerformed
         final Object[] message = {
-            "Multipass v1.4 Copyright 2015 Ari Zerner.",
+            "Multipass v1.4.1 Copyright 2015 Ari Zerner.",
             "This program is free software: you can redistribute it and/or modify",
             "it under the terms of the GNU General Public License as published by",
             "the Free Software Foundation, either version 3 of the License, or",
