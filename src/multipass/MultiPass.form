@@ -60,12 +60,6 @@
                   </Group>
               </Group>
               <Group type="103" groupAlignment="0" attributes="0">
-                  <Group type="102" alignment="0" attributes="0">
-                      <Component id="lengthField" min="-2" max="-2" attributes="0"/>
-                      <EmptySpace type="separate" max="-2" attributes="0"/>
-                      <Component id="lengthSlider" min="-2" max="-2" attributes="0"/>
-                      <EmptySpace max="32767" attributes="0"/>
-                  </Group>
                   <Group type="102" attributes="0">
                       <Group type="103" groupAlignment="0" attributes="0">
                           <Component id="identifierField" max="32767" attributes="0"/>
@@ -76,16 +70,16 @@
                   </Group>
                   <Group type="102" attributes="0">
                       <Group type="103" groupAlignment="0" attributes="0">
-                          <Component id="setConfirmButton" alignment="0" max="32767" attributes="0"/>
-                          <Group type="102" attributes="0">
-                              <Group type="103" groupAlignment="0" attributes="0">
-                                  <Component id="clearAllFieldsButton" min="-2" pref="224" max="-2" attributes="0"/>
-                                  <Component id="aboutButton" min="-2" pref="224" max="-2" attributes="0"/>
-                              </Group>
-                              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                          <Group type="102" alignment="0" attributes="0">
+                              <Component id="lengthField" min="-2" max="-2" attributes="0"/>
+                              <EmptySpace type="separate" max="-2" attributes="0"/>
+                              <Component id="lengthSlider" min="-2" max="-2" attributes="0"/>
                           </Group>
+                          <Component id="clearAllFieldsButton" min="-2" pref="224" max="-2" attributes="0"/>
+                          <Component id="aboutButton" min="-2" pref="224" max="-2" attributes="0"/>
+                          <Component id="setConfirmButton" alignment="0" min="-2" pref="259" max="-2" attributes="0"/>
                       </Group>
-                      <EmptySpace min="-2" pref="6" max="-2" attributes="0"/>
+                      <EmptySpace pref="16" max="32767" attributes="0"/>
                   </Group>
               </Group>
           </Group>
@@ -147,6 +141,9 @@
       </Properties>
     </Component>
     <Component class="javax.swing.JPasswordField" name="masterField">
+      <Properties>
+        <Property name="toolTipText" type="java.lang.String" value="Your master password."/>
+      </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="masterFieldActionPerformed"/>
         <EventHandler event="keyReleased" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="masterFieldKeyReleased"/>
@@ -158,6 +155,9 @@
       </Properties>
     </Component>
     <Component class="javax.swing.JTextField" name="identifierField">
+      <Properties>
+        <Property name="toolTipText" type="java.lang.String" value="The name of the website (or other service) this password is for."/>
+      </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="identifierFieldActionPerformed"/>
         <EventHandler event="keyReleased" listener="java.awt.event.KeyListener" parameters="java.awt.event.KeyEvent" handler="identifierFieldKeyReleased"/>
@@ -166,6 +166,7 @@
     <Component class="javax.swing.JPasswordField" name="passwordField">
       <Properties>
         <Property name="editable" type="boolean" value="false"/>
+        <Property name="toolTipText" type="java.lang.String" value="The generated password."/>
       </Properties>
       <AuxValues>
         <AuxValue name="JavaCodeGenerator_CreateCodePost" type="java.lang.String" value="defaultEchoChar = passwordField.getEchoChar();"/>
@@ -174,6 +175,7 @@
     <Component class="javax.swing.JButton" name="copyToClipButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="Copy Password To Clipboard"/>
+        <Property name="toolTipText" type="java.lang.String" value="Copy the generated password so it can be pasted where you need it."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="copyToClipButtonActionPerformed"/>
@@ -182,6 +184,7 @@
     <Component class="javax.swing.JButton" name="clearClipButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="Clear Clipboard"/>
+        <Property name="toolTipText" type="java.lang.String" value="Clear the clipboard so that the generated password can no longer be pasted."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="clearClipButtonActionPerformed"/>
@@ -190,6 +193,7 @@
     <Component class="javax.swing.JButton" name="aboutButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="About"/>
+        <Property name="toolTipText" type="java.lang.String" value="About Multipass."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="aboutButtonActionPerformed"/>
@@ -203,6 +207,7 @@
         <Property name="minorTickSpacing" type="int" value="2"/>
         <Property name="paintLabels" type="boolean" value="true"/>
         <Property name="paintTicks" type="boolean" value="true"/>
+        <Property name="toolTipText" type="java.lang.String" value="For security reasons, passwords should be between 12 and 24 characters."/>
         <Property name="value" type="int" value="16"/>
       </Properties>
       <Events>
@@ -229,6 +234,7 @@
     <Component class="javax.swing.JButton" name="clearAllFieldsButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="Clear All Fields"/>
+        <Property name="toolTipText" type="java.lang.String" value="Clear the master password, identifier, and generated password. Does not clear the clipboard."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="clearAllFieldsButtonActionPerformed"/>
@@ -237,6 +243,7 @@
     <Component class="javax.swing.JCheckBox" name="pinCheckBox">
       <Properties>
         <Property name="text" type="java.lang.String" value="4-digit PIN"/>
+        <Property name="toolTipText" type="java.lang.String" value="Generate a 4-digit PIN instead of a password."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="pinCheckBoxActionPerformed"/>
@@ -245,6 +252,7 @@
     <Component class="javax.swing.JCheckBox" name="showCheckBox">
       <Properties>
         <Property name="text" type="java.lang.String" value="Show"/>
+        <Property name="toolTipText" type="java.lang.String" value="Show the generated password."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="showCheckBoxActionPerformed"/>
@@ -254,6 +262,7 @@
       <Properties>
         <Property name="selected" type="boolean" value="true"/>
         <Property name="text" type="java.lang.String" value="Confirm Master Password"/>
+        <Property name="toolTipText" type="java.lang.String" value="Ensures that you have typed your master password correctly. Recommended when creating a new password."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="confirmCheckBoxActionPerformed"/>
@@ -261,7 +270,8 @@
     </Component>
     <Component class="javax.swing.JButton" name="setConfirmButton">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Securely Set Confirmation Password"/>
+        <Property name="text" type="java.lang.String" value=" Set Confirmation Password"/>
+        <Property name="toolTipText" type="java.lang.String" value="Securely store a password to be used when confirming your master password."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="setConfirmButtonActionPerformed"/>
