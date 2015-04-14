@@ -16,16 +16,19 @@ import java.awt.datatransfer.StringSelection;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.prefs.Preferences;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
+import javax.xml.bind.DatatypeConverter;
 
 public class MultiPass extends javax.swing.JFrame {
 
     private static final String GENERATION_ALGORITHM = "MD5",
             CONFIRMATION_ALGORITHM = "SHA-256", CONFIRMATION_HASH_KEY = "hash",
             CONFIRMATION_SALT_KEY = "salt";
+    private static final int CONFIRMATION_HASH_LENGTH = 16;
     private char defaultEchoChar = '*';
     private Preferences confirmNode = Preferences.userRoot().node(
             "multipass/confirm");
@@ -42,7 +45,7 @@ public class MultiPass extends javax.swing.JFrame {
      * @param algorithm
      * @return the hash as a BigInteger
      */
-    private BigInteger generateHash(char[] text, String salt,
+    private String generateHash(char[] text, String salt,
             String algorithm) {
         byte[] prehash = new byte[text.length + salt.length() + 1];
         MessageDigest digest;
@@ -58,9 +61,9 @@ public class MultiPass extends javax.swing.JFrame {
         for (int i = 0; i < salt.length(); i++) {
             prehash[i + text.length + 1] = (byte) salt.charAt(i);
         }
-        byte[] posthash = digest.digest(prehash);
+        byte[] hash = digest.digest(prehash);
         Arrays.fill(prehash, (byte) 0);
-        return new BigInteger(1, posthash);
+        return DatatypeConverter.printHexBinary(hash);
     }
 
     /**
@@ -70,12 +73,10 @@ public class MultiPass extends javax.swing.JFrame {
      * @param length the password length, 0 to 32
      */
     private String generatePassword(char[] master, String identifier, int length) {
-        BigInteger hash = generateHash(master, identifier, GENERATION_ALGORITHM);
-        String password = hash.toString(16);
-        while (password.length() < 32)
-            password = "0" + password;
+        String password = generateHash(master, identifier, GENERATION_ALGORITHM);
         return password.substring(0, length).
-                replace('a', 'A').replace('c', 'C').replace('e', 'E');
+                replace('a', 'A').replace('c', 'C').replace('e', 'E')
+                .replace('B', 'b').replace('D', 'd').replace('F', 'f');
     }
 
     /**
@@ -84,10 +85,7 @@ public class MultiPass extends javax.swing.JFrame {
      * @param identifier an identifier for the use of the password
      */
     private String generatePIN(char[] master, String identifier) {
-        BigInteger hash = generateHash(master, identifier, GENERATION_ALGORITHM);
-        String password = hash.toString(10);
-        while (password.length() < 32)
-            password = "0" + password;
+        String password = generateHash(master, identifier, GENERATION_ALGORITHM);
         return password.substring(0, 4);
     }
 
@@ -194,6 +192,7 @@ public class MultiPass extends javax.swing.JFrame {
 
         lengthField.setColumns(2);
         lengthField.setText(Integer.toString(lengthSlider.getValue()));
+        lengthField.setToolTipText(lengthSlider.getToolTipText());
         lengthField.addFocusListener(new java.awt.event.FocusAdapter() {
             public void focusLost(java.awt.event.FocusEvent evt) {
                 lengthFieldFocusLost(evt);
@@ -366,7 +365,8 @@ public class MultiPass extends javax.swing.JFrame {
         }
         char[] master = masterField.getPassword();
         boolean confirmed = generateHash(master, salt,
-                CONFIRMATION_ALGORITHM).toString(16).equals(hash);
+                CONFIRMATION_ALGORITHM).substring(0, CONFIRMATION_HASH_LENGTH)
+                .equals(hash);
         Arrays.fill(master, '\0');
         return confirmed;
     }
@@ -452,13 +452,12 @@ public class MultiPass extends javax.swing.JFrame {
             "and the identifier, separated by a space. It then uses the "
             + GENERATION_ALGORITHM,
             "algorithm to make a hash of the concatenation. The hash is",
-            "represented as a hexadecimal number, padded with leading zeroes to",
-            "make its length 32, and truncated to the specified length.",
-            "Then, all instances of a, c, and e are capitalized.",
-            "The same process is used to make a PIN, except that the hash is",
-            "represented as a decimal number instead of a hexadecimal number,",
-            "and always truncated to 4 digits instead of the specified length.",};
-        JOptionPane.showMessageDialog(this, message, "About SitePass",
+            "represented as a 32-digit hexadecimal number, and all digits after",
+            "the specified length are cut off. Then, all instances of a, c,",
+            "and e are capitalized. The same process is used to make a PIN,",
+            "except that the hash is represented as a decimal number instead",
+            "of a hexadecimal number, and only the first 4 digits are used."};
+        JOptionPane.showMessageDialog(this, message, "About Multipass",
                 JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_aboutButtonActionPerformed
 
@@ -530,11 +529,13 @@ public class MultiPass extends javax.swing.JFrame {
             "that is both strong and easy to remember!"},
                 "Set Confirmation Password", JOptionPane.OK_CANCEL_OPTION,
                 JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
-            String salt = "salt" + Math.random();
+            String salt = "" + new SecureRandom().nextLong();
             char[] confirmPassword = confirmField.getPassword();
             String hash = generateHash(confirmPassword, salt,
-                    CONFIRMATION_ALGORITHM).toString(16);
-            Arrays.fill(confirmPassword, '\0');
+                    CONFIRMATION_ALGORITHM).substring(0,
+                            CONFIRMATION_HASH_LENGTH);
+            Arrays.fill(
+                    confirmPassword, '\0');
             confirmNode.put(CONFIRMATION_HASH_KEY, hash);
             confirmNode.put(CONFIRMATION_SALT_KEY, salt);
             generate();
