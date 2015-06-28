@@ -1,12 +1,9 @@
 /*
- * Multipass v1.5
- * Copyright 2015 Ari Zerner.
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * The full text of the GNU General Public License can be found at
- * http://www.gnu.org/licenses/gpl.txt.
+ * Multipass v2.0 Copyright 2015 Ari Zerner.
+ * You may use and modify this software for any purpose, provided you do not
+ * give credit for its creation to anyone but the copyright holder and you do
+ * not give the copyright holder credit for any modifications for which he was
+ * not responsible.
  */
 package multipass;
 
@@ -19,16 +16,17 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.prefs.Preferences;
-import javax.swing.JOptionPane;
-import javax.swing.JPasswordField;
-import javax.xml.bind.DatatypeConverter;
+import javax.swing.*;
+import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class MultiPass extends javax.swing.JFrame {
 
-    private static final String GENERATION_ALGORITHM = "MD5",
+    private static final String GENERATION_ALGORITHM = "SHA-256",
             CONFIRMATION_ALGORITHM = "SHA-256", CONFIRMATION_HASH_KEY = "hash",
-            CONFIRMATION_SALT_KEY = "salt";
-    private static final int CONFIRMATION_HASH_LENGTH = 16;
+            CONFIRMATION_SALT_KEY = "salt", PASSWORD_HEADER = "Mp2!",
+            HEADER_MNEMONIC = "Multipass 2!", VERSION = "v2.0";
+    private static final int CONFIRMATION_HASH_LENGTH = 16,
+            PASSWORD_LENGTH_WITHOUT_HEADER = 16, PIN_LENGTH = 4;
     private char defaultEchoChar = '*';
     private Preferences confirmNode = Preferences.userRoot().node(
             "multipass/confirm");
@@ -43,9 +41,9 @@ public class MultiPass extends javax.swing.JFrame {
      * @param text
      * @param salt
      * @param algorithm
-     * @return the hash as a BigInteger
+     * @return the hash as a byte[]
      */
-    private String generateHash(char[] text, String salt,
+    private static byte[] generateHash(char[] text, String salt,
             String algorithm) {
         byte[] prehash = new byte[text.length + salt.length() + 1];
         MessageDigest digest;
@@ -63,20 +61,21 @@ public class MultiPass extends javax.swing.JFrame {
         }
         byte[] hash = digest.digest(prehash);
         Arrays.fill(prehash, (byte) 0);
-        return DatatypeConverter.printHexBinary(hash);
+        return hash;
     }
 
     /**
      * Generates a password from a master password and an identifier.
      * @param master a secure password
      * @param identifier an identifier for the use of the password
-     * @param length the password length, 0 to 32
+     * @param length the desired password length
      */
-    private String generatePassword(char[] master, String identifier, int length) {
-        String password = generateHash(master, identifier, GENERATION_ALGORITHM);
-        return password.substring(0, length).
-                replace('a', 'A').replace('c', 'C').replace('e', 'E')
-                .replace('B', 'b').replace('D', 'd').replace('F', 'f');
+    private static String generatePassword(char[] master, String identifier) {
+        String password = PASSWORD_HEADER;
+        password += printHexBinary(
+                generateHash(master, identifier, GENERATION_ALGORITHM))
+                .substring(0, PASSWORD_LENGTH_WITHOUT_HEADER).toLowerCase();
+        return password;
     }
 
     /**
@@ -84,9 +83,11 @@ public class MultiPass extends javax.swing.JFrame {
      * @param master a secure password
      * @param identifier an identifier for the use of the password
      */
-    private String generatePIN(char[] master, String identifier) {
-        String password = generateHash(master, identifier, GENERATION_ALGORITHM);
-        return password.substring(0, 4);
+    private static String generatePIN(char[] master, String identifier) {
+        int pin = new BigInteger(1,
+                generateHash(master, identifier, GENERATION_ALGORITHM))
+                .mod(BigInteger.TEN.pow(PIN_LENGTH)).intValue();
+        return String.format("%04d", pin);
     }
 
     /**
@@ -104,12 +105,9 @@ public class MultiPass extends javax.swing.JFrame {
         identifierField = new javax.swing.JTextField();
         passwordField = new javax.swing.JPasswordField();
         defaultEchoChar = passwordField.getEchoChar();
-        copyToClipButton = new javax.swing.JButton();
+        copyPasswordButton = new javax.swing.JButton();
         clearClipButton = new javax.swing.JButton();
         aboutButton = new javax.swing.JButton();
-        lengthSlider = new javax.swing.JSlider();
-        jLabel3 = new javax.swing.JLabel();
-        lengthField = new javax.swing.JTextField();
         clearAllFieldsButton = new javax.swing.JButton();
         pinCheckBox = new javax.swing.JCheckBox();
         showCheckBox = new javax.swing.JCheckBox();
@@ -120,6 +118,7 @@ public class MultiPass extends javax.swing.JFrame {
         setTitle("Multipass");
 
         jLabel1.setText("Master Password:");
+        jLabel1.setToolTipText("");
 
         masterField.setToolTipText("Your master password.");
         masterField.addActionListener(new java.awt.event.ActionListener() {
@@ -128,38 +127,45 @@ public class MultiPass extends javax.swing.JFrame {
             }
         });
         masterField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                masterFieldKeyPressed(evt);
+            }
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 masterFieldKeyReleased(evt);
             }
         });
 
-        jLabel2.setText("Password Use Identifier (site name):");
+        jLabel2.setText("Use Identifier:");
 
-        identifierField.setToolTipText("The name of the website (or other service) this password is for.");
+        identifierField.setToolTipText("An identifier you'll remember for this password or PIN (e.g. a website name). Pressing enter while this field is active will copy the generated password or PIN.");
         identifierField.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 identifierFieldActionPerformed(evt);
             }
         });
         identifierField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                identifierFieldKeyPressed(evt);
+            }
             public void keyReleased(java.awt.event.KeyEvent evt) {
                 identifierFieldKeyReleased(evt);
             }
         });
 
         passwordField.setEditable(false);
-        passwordField.setToolTipText("The generated password.");
+        passwordField.setColumns(20);
+        passwordField.setToolTipText("The generated password or PIN.");
 
-        copyToClipButton.setText("Copy Password To Clipboard");
-        copyToClipButton.setToolTipText("Copy the generated password so it can be pasted where you need it.");
-        copyToClipButton.addActionListener(new java.awt.event.ActionListener() {
+        copyPasswordButton.setText("Copy Password");
+        copyPasswordButton.setToolTipText("Copy the generated password or PIN so it can be pasted where you need it. This can also be done by pressing enter when the \"Use Identifier\" field is active.");
+        copyPasswordButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                copyToClipButtonActionPerformed(evt);
+                copyPasswordButtonActionPerformed(evt);
             }
         });
 
         clearClipButton.setText("Clear Clipboard");
-        clearClipButton.setToolTipText("Clear the clipboard so that the generated password can no longer be pasted.");
+        clearClipButton.setToolTipText("Clear the clipboard so that the copied password or PIN can no longer be pasted.");
         clearClipButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 clearClipButtonActionPerformed(evt);
@@ -167,53 +173,23 @@ public class MultiPass extends javax.swing.JFrame {
         });
 
         aboutButton.setText("About");
-        aboutButton.setToolTipText("About Multipass.");
+        aboutButton.setToolTipText("Bring up information about Multipass.");
         aboutButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 aboutButtonActionPerformed(evt);
             }
         });
 
-        lengthSlider.setMajorTickSpacing(4);
-        lengthSlider.setMaximum(32);
-        lengthSlider.setMinimum(8);
-        lengthSlider.setMinorTickSpacing(2);
-        lengthSlider.setPaintLabels(true);
-        lengthSlider.setPaintTicks(true);
-        lengthSlider.setToolTipText("For security reasons, passwords should be between 12 and 24 characters.");
-        lengthSlider.setValue(16);
-        lengthSlider.addChangeListener(new javax.swing.event.ChangeListener() {
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                lengthSliderStateChanged(evt);
-            }
-        });
-
-        jLabel3.setText("Password Length:");
-
-        lengthField.setColumns(2);
-        lengthField.setText(Integer.toString(lengthSlider.getValue()));
-        lengthField.setToolTipText(lengthSlider.getToolTipText());
-        lengthField.addFocusListener(new java.awt.event.FocusAdapter() {
-            public void focusLost(java.awt.event.FocusEvent evt) {
-                lengthFieldFocusLost(evt);
-            }
-        });
-        lengthField.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                lengthFieldActionPerformed(evt);
-            }
-        });
-
         clearAllFieldsButton.setText("Clear All Fields");
-        clearAllFieldsButton.setToolTipText("Clear the master password, identifier, and generated password. Does not clear the clipboard.");
+        clearAllFieldsButton.setToolTipText("Clear the master password, use identifier, and generated password/PIN fields. This option doesn't clear the clipboard.");
         clearAllFieldsButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 clearAllFieldsButtonActionPerformed(evt);
             }
         });
 
-        pinCheckBox.setText("4-digit PIN");
-        pinCheckBox.setToolTipText("Generate a 4-digit PIN instead of a password.");
+        pinCheckBox.setText(PIN_LENGTH + "-digit PIN");
+        pinCheckBox.setToolTipText("Generate a " + PIN_LENGTH + "-digit PIN instead of a password.");
         pinCheckBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 pinCheckBoxActionPerformed(evt);
@@ -221,7 +197,7 @@ public class MultiPass extends javax.swing.JFrame {
         });
 
         showCheckBox.setText("Show");
-        showCheckBox.setToolTipText("Show the generated password.");
+        showCheckBox.setToolTipText("Show the generated password or PIN.");
         showCheckBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 showCheckBoxActionPerformed(evt);
@@ -230,15 +206,15 @@ public class MultiPass extends javax.swing.JFrame {
 
         confirmCheckBox.setSelected(true);
         confirmCheckBox.setText("Confirm Master Password");
-        confirmCheckBox.setToolTipText("Ensures that you have typed your master password correctly. Recommended when creating a new password.");
+        confirmCheckBox.setToolTipText("Ensure that you have typed your master password correctly. Recommended when creating a new password.");
         confirmCheckBox.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 confirmCheckBoxActionPerformed(evt);
             }
         });
 
-        setConfirmButton.setText(" Set Confirmation Password");
-        setConfirmButton.setToolTipText("Securely store a password to be used when confirming your master password.");
+        setConfirmButton.setText("Set Confirmation Password");
+        setConfirmButton.setToolTipText("Securely store a master password to be used when password confirmation is on.");
         setConfirmButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 setConfirmButtonActionPerformed(evt);
@@ -250,47 +226,30 @@ public class MultiPass extends javax.swing.JFrame {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createSequentialGroup()
+                            .addGap(133, 133, 133)
+                            .addComponent(showCheckBox))
+                        .addGroup(layout.createSequentialGroup()
+                            .addContainerGap()
+                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addComponent(pinCheckBox)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                                    .addComponent(jLabel2)
                                     .addComponent(jLabel1)
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addComponent(pinCheckBox)
-                                        .addGap(18, 18, 18)
-                                        .addComponent(jLabel3))
-                                    .addComponent(jLabel2))
-                                .addGap(21, 21, 21))
-                            .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(copyToClipButton)
-                                    .addComponent(clearClipButton, javax.swing.GroupLayout.PREFERRED_SIZE, 224, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)))
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                            .addComponent(showCheckBox)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                        .addComponent(confirmCheckBox)
-                        .addGap(18, 18, 18)))
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(identifierField)
-                            .addComponent(masterField)
-                            .addComponent(passwordField))
-                        .addGap(1, 1, 1))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(lengthField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 18, 18)
-                                .addComponent(lengthSlider, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(clearAllFieldsButton, javax.swing.GroupLayout.PREFERRED_SIZE, 224, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(aboutButton, javax.swing.GroupLayout.PREFERRED_SIZE, 224, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(setConfirmButton, javax.swing.GroupLayout.PREFERRED_SIZE, 259, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addContainerGap(16, Short.MAX_VALUE))))
+                                    .addComponent(confirmCheckBox))))
+                        .addComponent(copyPasswordButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(clearClipButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addComponent(masterField, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(identifierField, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(setConfirmButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, 1, Short.MAX_VALUE)
+                    .addComponent(clearAllFieldsButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(aboutButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -306,28 +265,19 @@ public class MultiPass extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(confirmCheckBox)
                     .addComponent(setConfirmButton))
-                .addGap(11, 11, 11)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(lengthSlider, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(6, 6, 6)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel3)
-                            .addComponent(lengthField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(pinCheckBox))))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(showCheckBox))
+                    .addComponent(showCheckBox)
+                    .addComponent(pinCheckBox))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(clearAllFieldsButton)
-                    .addComponent(copyToClipButton))
+                    .addComponent(copyPasswordButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(clearClipButton)
-                    .addComponent(aboutButton))
-                .addContainerGap(14, Short.MAX_VALUE))
+                    .addComponent(aboutButton)))
         );
 
         pack();
@@ -364,9 +314,9 @@ public class MultiPass extends javax.swing.JFrame {
             return false;
         }
         char[] master = masterField.getPassword();
-        boolean confirmed = generateHash(master, salt,
-                CONFIRMATION_ALGORITHM).substring(0, CONFIRMATION_HASH_LENGTH)
-                .equals(hash);
+        boolean confirmed = printHexBinary(
+                generateHash(master, salt, CONFIRMATION_ALGORITHM))
+                .substring(0, CONFIRMATION_HASH_LENGTH).equals(hash);
         Arrays.fill(master, '\0');
         return confirmed;
     }
@@ -381,14 +331,12 @@ public class MultiPass extends javax.swing.JFrame {
             if (!confirmCheckBox.isSelected() || confirmMasterPassword()) {
                 confirmCheckBox.setForeground(Color.black);
                 if (identifier.length() > 0) {
-                    String generated;
-                    if (pinCheckBox.isSelected()) {
-                        generated = generatePIN(master, identifier);
-                    } else {
-                        generated = generatePassword(master, identifier,
-                                lengthSlider.getValue());
-                    }
+                    String generated = pinCheckBox.isSelected()
+                            ? generatePIN(master, identifier)
+                            : generatePassword(master, identifier);
                     passwordField.setText(generated);
+                } else {
+                    passwordField.setText("");
                 }
             } else {
                 confirmCheckBox.setForeground(Color.red);
@@ -403,13 +351,14 @@ public class MultiPass extends javax.swing.JFrame {
 
     private void identifierFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_identifierFieldActionPerformed
         generate();
+        copyToClipboard(passwordField.getText());
     }//GEN-LAST:event_identifierFieldActionPerformed
 
     /**
      * Sets the contents of the system clipboard to content.
      * @param content
      */
-    private void copyToClipboard(String content) {
+    private static void copyToClipboard(String content) {
         Toolkit.getDefaultToolkit().getSystemClipboard().
                 setContents(new StringSelection(content), null);
     }
@@ -419,69 +368,57 @@ public class MultiPass extends javax.swing.JFrame {
      * Gives user the option to clear clipboard.
      */
     public void dispose() {
-        switch (JOptionPane.showConfirmDialog(this, "Clear clipboard?", null,
-                JOptionPane.YES_NO_OPTION)) {
-            case JOptionPane.YES_OPTION:
-                copyToClipboard("");
-            case JOptionPane.NO_OPTION:
-                super.dispose();
-        }
+        if (JOptionPane.showConfirmDialog(this, "Clear clipboard?", null,
+                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)
+            copyToClipboard("");
+        super.dispose();
     }
 
-    private void copyToClipButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_copyToClipButtonActionPerformed
+    private void copyPasswordButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_copyPasswordButtonActionPerformed
         copyToClipboard(passwordField.getText());
-    }//GEN-LAST:event_copyToClipButtonActionPerformed
+    }//GEN-LAST:event_copyPasswordButtonActionPerformed
 
     private void clearClipButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearClipButtonActionPerformed
         copyToClipboard("");
     }//GEN-LAST:event_clearClipButtonActionPerformed
 
+    private static String text(AbstractButton button) {
+        return "\"" + button.getText() + "\"";
+    }
+
     private void aboutButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutButtonActionPerformed
         final Object[] message = {
-            "Multipass v1.5 Copyright 2015 Ari Zerner.",
-            "This program is free software: you can redistribute it and/or modify",
-            "it under the terms of the GNU General Public License as published by",
-            "the Free Software Foundation, either version 3 of the License, or",
-            "(at your option) any later version.",
-            "The full text of the GNU General Public License can be found at",
-            "http://www.gnu.org/licenses/gpl.txt.", "\n",
+            "Multipass " + VERSION + " Copyright 2015 Ari Zerner.", "\n",
+            "You may use and modify this software for any purpose, provided you",
+            "do not take credit for creating it and do not give Ari Zerner credit",
+            "for any modifications he did not make.", "\n",
             "Multipass is a tool that allows you to easily generate a secure",
-            "password from a master password and an identfier (e.g. a website name).",
+            "password or PIN from a master password and a use identifier",
+            "(e.g. a website name). To use it, type your master password and use",
+            "identifier in their respective fields, and then either press",
+            text(copyPasswordButton) + " or check " + text(showCheckBox)
+            + ". To generate a PIN instead of",
+            "a password, simply check " + text(pinCheckBox) + ".",
+            "It is recommended that you set your master password as the",
+            "confirmation password so that Multipass can check whether you have",
+            "entered your master password correctly. To do this, press",
+            text(setConfirmButton) + " and enter your master password. If you",
+            "don't set a confirmation password, you will need to uncheck",
+            text(confirmCheckBox) + ".",
             "\n", "How it works:", "\n",
-            "To generate passwords, Multipass concatenates the master password",
-            "and the identifier, separated by a space. It then uses the "
-            + GENERATION_ALGORITHM,
-            "algorithm to make a hash of the concatenation. The hash is",
-            "represented as a 32-digit hexadecimal number, and all digits after",
-            "the specified length are cut off. Then, all instances of a, c,",
-            "and e are capitalized. The same process is used to make a PIN,",
-            "except that the hash is represented as a decimal number instead",
-            "of a hexadecimal number, and only the first 4 digits are used."};
-        JOptionPane.showMessageDialog(this, message, "About Multipass",
+            "To generate passwords and PINs, Multipass concatenates the master",
+            "password and the identifier, separated by a space. It then uses the",
+            GENERATION_ALGORITHM + " algorithm to hash the concatenation.",
+            "To make a password, Multipass represents the hash as a lowercase",
+            "hex string and concatenates the first 16 characters to the header,",
+            "which is \"" + PASSWORD_HEADER + "\" (" + HEADER_MNEMONIC + ").",
+            "To make a PIN, Multipass represents the hash as an unsigned decimal",
+            "integer, and uses the last 4 digits, padding with zeros if necessary."
+        };
+        JOptionPane.showMessageDialog(this, message,
+                "About Multipass",
                 JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_aboutButtonActionPerformed
-
-    private void lengthSliderStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_lengthSliderStateChanged
-        lengthField.setText(Integer.toString(lengthSlider.getValue()));
-        generate();
-    }//GEN-LAST:event_lengthSliderStateChanged
-
-    /**
-     * Sets the length slider to the value in the length text field if the text
-     * is a valid integer, constraining the value to the range of the slider.
-     */
-    private void applyLengthFieldValue() {
-        try {
-            int val = Integer.parseInt(lengthField.getText());
-            // constrain val to range of length slider
-            val = Integer.max(lengthSlider.getMinimum(),
-                    Integer.min(lengthSlider.getMaximum(), val));
-            lengthField.setText(Integer.toString(val));
-            lengthSlider.setValue(val);
-        } catch (NumberFormatException e) {
-            lengthField.setText(Integer.toString(lengthSlider.getValue()));
-        }
-    }
 
     private void clearAllFields() {
         masterField.setText("");
@@ -489,22 +426,11 @@ public class MultiPass extends javax.swing.JFrame {
         passwordField.setText("");
     }
 
-    private void lengthFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_lengthFieldActionPerformed
-        applyLengthFieldValue();
-    }//GEN-LAST:event_lengthFieldActionPerformed
-
-    private void lengthFieldFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_lengthFieldFocusLost
-        applyLengthFieldValue();
-    }//GEN-LAST:event_lengthFieldFocusLost
-
     private void clearAllFieldsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearAllFieldsButtonActionPerformed
         clearAllFields();
     }//GEN-LAST:event_clearAllFieldsButtonActionPerformed
 
     private void pinCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pinCheckBoxActionPerformed
-        boolean isChecked = pinCheckBox.isSelected();
-        lengthField.setEnabled(!isChecked);
-        lengthSlider.setEnabled(!isChecked);
         generate();
     }//GEN-LAST:event_pinCheckBoxActionPerformed
 
@@ -531,11 +457,10 @@ public class MultiPass extends javax.swing.JFrame {
                 JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
             String salt = "" + new SecureRandom().nextLong();
             char[] confirmPassword = confirmField.getPassword();
-            String hash = generateHash(confirmPassword, salt,
-                    CONFIRMATION_ALGORITHM).substring(0,
-                            CONFIRMATION_HASH_LENGTH);
-            Arrays.fill(
-                    confirmPassword, '\0');
+            String hash = printHexBinary(
+                    generateHash(confirmPassword, salt, CONFIRMATION_ALGORITHM))
+                    .substring(0, CONFIRMATION_HASH_LENGTH);
+            Arrays.fill(confirmPassword, '\0');
             confirmNode.put(CONFIRMATION_HASH_KEY, hash);
             confirmNode.put(CONFIRMATION_SALT_KEY, salt);
             generate();
@@ -545,6 +470,14 @@ public class MultiPass extends javax.swing.JFrame {
     private void confirmCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_confirmCheckBoxActionPerformed
         generate();
     }//GEN-LAST:event_confirmCheckBoxActionPerformed
+
+    private void identifierFieldKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_identifierFieldKeyPressed
+        generate();
+    }//GEN-LAST:event_identifierFieldKeyPressed
+
+    private void masterFieldKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_masterFieldKeyPressed
+        generate();
+    }//GEN-LAST:event_masterFieldKeyPressed
 
     /**
      * @param args the command line arguments
@@ -564,13 +497,10 @@ public class MultiPass extends javax.swing.JFrame {
     private javax.swing.JButton clearAllFieldsButton;
     private javax.swing.JButton clearClipButton;
     private javax.swing.JCheckBox confirmCheckBox;
-    private javax.swing.JButton copyToClipButton;
+    private javax.swing.JButton copyPasswordButton;
     private javax.swing.JTextField identifierField;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
-    private javax.swing.JLabel jLabel3;
-    private javax.swing.JTextField lengthField;
-    private javax.swing.JSlider lengthSlider;
     private javax.swing.JPasswordField masterField;
     private javax.swing.JPasswordField passwordField;
     private javax.swing.JCheckBox pinCheckBox;
