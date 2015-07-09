@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<Form version="1.3" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JFrameFormInfo">
+<Form version="1.5" maxVersion="1.9" type="org.netbeans.modules.form.forminfo.JFrameFormInfo">
   <Properties>
     <Property name="defaultCloseOperation" type="int" value="2"/>
     <Property name="title" type="java.lang.String" value="Multipass"/>
@@ -24,38 +24,66 @@
   <Layout>
     <DimensionLayout dim="0">
       <Group type="103" groupAlignment="0" attributes="0">
-          <Group type="102" alignment="0" attributes="0">
+          <Group type="102" attributes="0">
+              <EmptySpace max="-2" attributes="0"/>
               <Group type="103" groupAlignment="0" attributes="0">
-                  <Group type="103" groupAlignment="0" attributes="0">
-                      <Group type="102" alignment="0" attributes="0">
-                          <EmptySpace min="-2" pref="133" max="-2" attributes="0"/>
-                          <Component id="showCheckBox" min="-2" max="-2" attributes="0"/>
-                      </Group>
-                      <Group type="102" attributes="0">
-                          <EmptySpace max="-2" attributes="0"/>
-                          <Group type="103" groupAlignment="0" attributes="0">
-                              <Component id="pinCheckBox" min="-2" max="-2" attributes="0"/>
-                              <Group type="103" alignment="0" groupAlignment="1" attributes="0">
-                                  <Component id="jLabel2" min="-2" max="-2" attributes="0"/>
+                  <Group type="102" attributes="0">
+                      <Group type="103" groupAlignment="0" attributes="0">
+                          <Group type="102" attributes="0">
+                              <Component id="jLabel3" min="-2" max="-2" attributes="0"/>
+                              <EmptySpace max="-2" attributes="0"/>
+                              <Component id="passwordField" max="32767" attributes="0"/>
+                          </Group>
+                          <Group type="102" attributes="0">
+                              <Group type="103" groupAlignment="0" attributes="0">
+                                  <Group type="102" attributes="0">
+                                      <Component id="clearCheckbox" min="-2" max="-2" attributes="0"/>
+                                      <EmptySpace max="-2" attributes="0"/>
+                                      <Component id="clearTimeSpinner" min="-2" pref="53" max="-2" attributes="0"/>
+                                      <EmptySpace max="-2" attributes="0"/>
+                                      <Component id="clearTimerMinutesLabel" min="-2" max="-2" attributes="0"/>
+                                  </Group>
+                                  <Group type="102" alignment="0" attributes="0">
+                                      <Component id="confirmCheckBox" min="-2" max="-2" attributes="0"/>
+                                      <EmptySpace max="-2" attributes="0"/>
+                                      <Component id="setConfirmButton" min="-2" max="-2" attributes="0"/>
+                                  </Group>
+                              </Group>
+                              <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                          </Group>
+                          <Group type="102" alignment="0" attributes="0">
+                              <EmptySpace min="-2" pref="21" max="-2" attributes="0"/>
+                              <Group type="103" groupAlignment="1" attributes="0">
                                   <Component id="jLabel1" min="-2" max="-2" attributes="0"/>
-                                  <Component id="confirmCheckBox" alignment="1" min="-2" max="-2" attributes="0"/>
+                                  <Component id="jLabel2" min="-2" max="-2" attributes="0"/>
+                              </Group>
+                              <EmptySpace max="-2" attributes="0"/>
+                              <Group type="103" groupAlignment="0" attributes="0">
+                                  <Component id="masterField" max="32767" attributes="0"/>
+                                  <Component id="identifierField" max="32767" attributes="0"/>
                               </Group>
                           </Group>
                       </Group>
-                      <Component id="copyPasswordButton" alignment="1" min="-2" pref="192" max="-2" attributes="0"/>
+                      <EmptySpace max="-2" attributes="0"/>
                   </Group>
-                  <Component id="clearClipButton" alignment="1" min="-2" pref="192" max="-2" attributes="0"/>
+                  <Group type="102" attributes="0">
+                      <Group type="103" groupAlignment="0" attributes="0">
+                          <Component id="showCheckBox" alignment="0" min="-2" max="-2" attributes="0"/>
+                          <Component id="pinCheckBox" alignment="0" min="-2" max="-2" attributes="0"/>
+                      </Group>
+                      <EmptySpace max="-2" attributes="0"/>
+                      <Group type="103" groupAlignment="0" max="-2" attributes="0">
+                          <Component id="copyPasswordButton" max="32767" attributes="0"/>
+                          <Component id="clearClipboardButton" max="32767" attributes="0"/>
+                      </Group>
+                      <EmptySpace min="0" pref="0" max="32767" attributes="0"/>
+                  </Group>
               </Group>
-              <EmptySpace max="-2" attributes="0"/>
-              <Group type="103" groupAlignment="1" max="-2" attributes="0">
-                  <Component id="masterField" alignment="0" max="32767" attributes="0"/>
-                  <Component id="identifierField" alignment="0" max="32767" attributes="0"/>
-                  <Component id="setConfirmButton" alignment="1" max="32767" attributes="0"/>
-                  <Component id="passwordField" pref="0" max="32767" attributes="0"/>
-                  <Component id="clearAllFieldsButton" alignment="0" max="32767" attributes="0"/>
-                  <Component id="aboutButton" alignment="0" max="32767" attributes="0"/>
-              </Group>
+          </Group>
+          <Group type="102" alignment="1" attributes="0">
               <EmptySpace max="32767" attributes="0"/>
+              <Component id="aboutButton" min="-2" max="-2" attributes="0"/>
+              <EmptySpace max="-2" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -73,25 +101,33 @@
               </Group>
               <EmptySpace max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
-                  <Component id="confirmCheckBox" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="setConfirmButton" alignment="3" min="-2" max="-2" attributes="0"/>
-              </Group>
-              <EmptySpace min="-2" max="-2" attributes="0"/>
-              <Group type="103" groupAlignment="3" attributes="0">
                   <Component id="passwordField" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="showCheckBox" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="pinCheckBox" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="jLabel3" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
               <Group type="103" groupAlignment="3" attributes="0">
-                  <Component id="clearAllFieldsButton" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="showCheckBox" alignment="3" min="-2" max="-2" attributes="0"/>
                   <Component id="copyPasswordButton" alignment="3" min="-2" max="-2" attributes="0"/>
               </Group>
               <EmptySpace max="-2" attributes="0"/>
-              <Group type="103" groupAlignment="3" attributes="0">
-                  <Component id="clearClipButton" alignment="3" min="-2" max="-2" attributes="0"/>
-                  <Component id="aboutButton" alignment="3" min="-2" max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="0" attributes="0">
+                  <Component id="clearClipboardButton" min="-2" max="-2" attributes="0"/>
+                  <Component id="pinCheckBox" min="-2" max="-2" attributes="0"/>
               </Group>
+              <EmptySpace max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="3" attributes="0">
+                  <Component id="confirmCheckBox" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="setConfirmButton" alignment="3" min="-2" max="-2" attributes="0"/>
+              </Group>
+              <EmptySpace max="-2" attributes="0"/>
+              <Group type="103" groupAlignment="3" attributes="0">
+                  <Component id="clearTimeSpinner" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="clearTimerMinutesLabel" alignment="3" min="-2" max="-2" attributes="0"/>
+                  <Component id="clearCheckbox" alignment="3" min="-2" max="-2" attributes="0"/>
+              </Group>
+              <EmptySpace max="-2" attributes="0"/>
+              <Component id="aboutButton" min="-2" max="-2" attributes="0"/>
+              <EmptySpace max="32767" attributes="0"/>
           </Group>
       </Group>
     </DimensionLayout>
@@ -140,60 +176,66 @@
     </Component>
     <Component class="javax.swing.JButton" name="copyPasswordButton">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Copy Password"/>
+        <Property name="text" type="java.lang.String" value="Copy Generated Password"/>
         <Property name="toolTipText" type="java.lang.String" value="Copy the generated password or PIN so it can be pasted where you need it. This can also be done by pressing enter when the &quot;Use Identifier&quot; field is active."/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="copyPasswordButtonActionPerformed"/>
       </Events>
     </Component>
-    <Component class="javax.swing.JButton" name="clearClipButton">
+    <Component class="javax.swing.JButton" name="clearClipboardButton">
       <Properties>
         <Property name="text" type="java.lang.String" value="Clear Clipboard"/>
         <Property name="toolTipText" type="java.lang.String" value="Clear the clipboard so that the copied password or PIN can no longer be pasted."/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="clearClipButtonActionPerformed"/>
+        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="clearClipboardButtonActionPerformed"/>
       </Events>
     </Component>
     <Component class="javax.swing.JButton" name="aboutButton">
       <Properties>
-        <Property name="text" type="java.lang.String" value="About"/>
-        <Property name="toolTipText" type="java.lang.String" value="Bring up information about Multipass."/>
+        <Property name="font" type="java.awt.Font" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
+          <Connection code="aboutButton.getFont().deriveFont(new HashMap&lt;TextAttribute, Integer&gt;() {{put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);}})" type="code"/>
+        </Property>
+        <Property name="foreground" type="java.awt.Color" editor="org.netbeans.beaninfo.editors.ColorEditor">
+          <Color blue="ff" green="0" id="blue" palette="1" red="0" type="palette"/>
+        </Property>
+        <Property name="text" type="java.lang.String" value="About Multipass"/>
+        <Property name="toolTipText" type="java.lang.String" value=""/>
+        <Property name="border" type="javax.swing.border.Border" editor="org.netbeans.modules.form.editors2.BorderEditor">
+          <Border info="null"/>
+        </Property>
+        <Property name="contentAreaFilled" type="boolean" value="false"/>
+        <Property name="cursor" type="java.awt.Cursor" editor="org.netbeans.modules.form.editors2.CursorEditor">
+          <Color id="Hand Cursor"/>
+        </Property>
+        <Property name="focusPainted" type="boolean" value="false"/>
+        <Property name="requestFocusEnabled" type="boolean" value="false"/>
       </Properties>
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="aboutButtonActionPerformed"/>
       </Events>
     </Component>
-    <Component class="javax.swing.JButton" name="clearAllFieldsButton">
-      <Properties>
-        <Property name="text" type="java.lang.String" value="Clear All Fields"/>
-        <Property name="toolTipText" type="java.lang.String" value="Clear the master password, use identifier, and generated password/PIN fields. This option doesn&apos;t clear the clipboard."/>
-      </Properties>
-      <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="clearAllFieldsButtonActionPerformed"/>
-      </Events>
-    </Component>
     <Component class="javax.swing.JCheckBox" name="pinCheckBox">
       <Properties>
         <Property name="text" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
-          <Connection code="PIN_LENGTH + &quot;-digit PIN&quot;" type="code"/>
+          <Connection code="&quot;Generate &quot; + PIN_LENGTH + &quot;-digit PIN&quot;" type="code"/>
         </Property>
         <Property name="toolTipText" type="java.lang.String" editor="org.netbeans.modules.form.RADConnectionPropertyEditor">
           <Connection code="&quot;Generate a &quot; + PIN_LENGTH + &quot;-digit PIN instead of a password.&quot;" type="code"/>
         </Property>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="pinCheckBoxActionPerformed"/>
+        <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="pinCheckBoxStateChanged"/>
       </Events>
     </Component>
     <Component class="javax.swing.JCheckBox" name="showCheckBox">
       <Properties>
-        <Property name="text" type="java.lang.String" value="Show"/>
+        <Property name="text" type="java.lang.String" value="Show Generated Password"/>
         <Property name="toolTipText" type="java.lang.String" value="Show the generated password or PIN."/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="showCheckBoxActionPerformed"/>
+        <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="showCheckBoxStateChanged"/>
       </Events>
     </Component>
     <Component class="javax.swing.JCheckBox" name="confirmCheckBox">
@@ -203,7 +245,7 @@
         <Property name="toolTipText" type="java.lang.String" value="Ensure that you have typed your master password correctly. Recommended when creating a new password."/>
       </Properties>
       <Events>
-        <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="confirmCheckBoxActionPerformed"/>
+        <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="confirmCheckBoxStateChanged"/>
       </Events>
     </Component>
     <Component class="javax.swing.JButton" name="setConfirmButton">
@@ -214,6 +256,36 @@
       <Events>
         <EventHandler event="actionPerformed" listener="java.awt.event.ActionListener" parameters="java.awt.event.ActionEvent" handler="setConfirmButtonActionPerformed"/>
       </Events>
+    </Component>
+    <Component class="javax.swing.JSpinner" name="clearTimeSpinner">
+      <Properties>
+        <Property name="model" type="javax.swing.SpinnerModel" editor="org.netbeans.modules.form.editors2.SpinnerModelEditor">
+          <SpinnerModel initial="10" minimum="1" numberType="java.lang.Integer" stepSize="1" type="number"/>
+        </Property>
+      </Properties>
+      <Events>
+        <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="clearTimeSpinnerStateChanged"/>
+      </Events>
+    </Component>
+    <Component class="javax.swing.JLabel" name="clearTimerMinutesLabel">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="minutes of inactivity."/>
+      </Properties>
+    </Component>
+    <Component class="javax.swing.JCheckBox" name="clearCheckbox">
+      <Properties>
+        <Property name="selected" type="boolean" value="true"/>
+        <Property name="text" type="java.lang.String" value="Clear all fields after"/>
+        <Property name="toolTipText" type="java.lang.String" value="Automatically clear the master password, use identifier, and generated password if you are inactive too long."/>
+      </Properties>
+      <Events>
+        <EventHandler event="stateChanged" listener="javax.swing.event.ChangeListener" parameters="javax.swing.event.ChangeEvent" handler="clearCheckboxStateChanged"/>
+      </Events>
+    </Component>
+    <Component class="javax.swing.JLabel" name="jLabel3">
+      <Properties>
+        <Property name="text" type="java.lang.String" value="Generated Password:"/>
+      </Properties>
     </Component>
   </SubComponents>
 </Form>

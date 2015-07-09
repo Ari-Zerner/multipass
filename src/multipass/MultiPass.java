@@ -1,5 +1,5 @@
 /*
- * Multipass v2.0 Copyright 2015 Ari Zerner.
+ * Multipass v2.1 Copyright 2015 Ari Zerner.
  * You may use and modify this software for any purpose, provided you do not
  * give credit for its creation to anyone but the copyright holder and you do
  * not give the copyright holder credit for any modifications for which he was
@@ -7,33 +7,80 @@
  */
 package multipass;
 
-import java.awt.Color;
-import java.awt.Toolkit;
+import java.awt.*;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.*;
+import java.awt.font.TextAttribute;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.util.Arrays;
+import java.util.*;
 import java.util.prefs.Preferences;
 import javax.swing.*;
+import javax.swing.Timer;
+import javax.swing.UIManager.LookAndFeelInfo;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class MultiPass extends javax.swing.JFrame {
 
-    private static final String GENERATION_ALGORITHM = "SHA-256",
-            CONFIRMATION_ALGORITHM = "SHA-256", CONFIRMATION_HASH_KEY = "hash",
-            CONFIRMATION_SALT_KEY = "salt", PASSWORD_HEADER = "Mp2!",
-            HEADER_MNEMONIC = "Multipass 2!", VERSION = "v2.0";
+    private static final String VERSION = "v2.1",
+            GENERATION_ALGORITHM = "SHA-256",
+            CONFIRMATION_ALGORITHM = "SHA-256",
+            PASSWORD_HEADER = "Mp2!",
+            HEADER_MNEMONIC = "Multipass 2!",
+            CONFIRMATION_HASH_KEY = "hash",
+            CONFIRMATION_SALT_KEY = "salt",
+            CLEAR_ENABLED_KEY = "enabled",
+            CLEAR_TIME_KEY = "time";
     private static final int CONFIRMATION_HASH_LENGTH = 16,
-            PASSWORD_LENGTH_WITHOUT_HEADER = 16, PIN_LENGTH = 4;
+            PASSWORD_LENGTH_WITHOUT_HEADER = 16, PIN_LENGTH = 4,
+            MILLIS_PER_MINUTE = 60000;
     private char defaultEchoChar = '*';
-    private Preferences confirmNode = Preferences.userRoot().node(
-            "multipass/confirm");
+    private Preferences preferences = Preferences.userRoot().node("multipass"),
+            confirmPreferences = preferences.node("confirm"),
+            clearTimerPreferences = preferences.node("clearTimer");
+    private Timer clearTimer;
 
     /** Creates new form MultiPassGUI */
     public MultiPass() {
         initComponents();
+        initClearTimer();
+    }
+
+    /**
+     * Does the necessary setup for the clear timer.
+     */
+    private void initClearTimer() {
+        clearTimer = new Timer(0,
+                new ActionListener() {
+
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        masterField.setText("");
+                        identifierField.setText("");
+                        passwordField.setText("");
+                    }
+                });
+
+        clearTimer.setRepeats(false);
+
+        Toolkit.getDefaultToolkit().addAWTEventListener(new AWTEventListener() {
+
+            @Override
+            public void eventDispatched(AWTEvent event) {
+                if (clearCheckbox.isSelected()) {
+                    clearTimer.restart();
+                }
+            }
+        }, AWTEvent.MOUSE_EVENT_MASK | AWTEvent.KEY_EVENT_MASK);
+
+        clearTimeSpinner.setValue(clearTimerPreferences.getInt(CLEAR_TIME_KEY,
+                (Integer) clearTimeSpinner.getValue()));
+        boolean clearEnabled = clearTimerPreferences.getBoolean(
+                CLEAR_ENABLED_KEY, clearCheckbox.isSelected());
+        clearCheckbox.setSelected(clearEnabled);
+        if (clearEnabled) clearTimer.start();
     }
 
     /**
@@ -106,13 +153,16 @@ public class MultiPass extends javax.swing.JFrame {
         passwordField = new javax.swing.JPasswordField();
         defaultEchoChar = passwordField.getEchoChar();
         copyPasswordButton = new javax.swing.JButton();
-        clearClipButton = new javax.swing.JButton();
+        clearClipboardButton = new javax.swing.JButton();
         aboutButton = new javax.swing.JButton();
-        clearAllFieldsButton = new javax.swing.JButton();
         pinCheckBox = new javax.swing.JCheckBox();
         showCheckBox = new javax.swing.JCheckBox();
         confirmCheckBox = new javax.swing.JCheckBox();
         setConfirmButton = new javax.swing.JButton();
+        clearTimeSpinner = new javax.swing.JSpinner();
+        clearTimerMinutesLabel = new javax.swing.JLabel();
+        clearCheckbox = new javax.swing.JCheckBox();
+        jLabel3 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Multipass");
@@ -156,7 +206,7 @@ public class MultiPass extends javax.swing.JFrame {
         passwordField.setColumns(20);
         passwordField.setToolTipText("The generated password or PIN.");
 
-        copyPasswordButton.setText("Copy Password");
+        copyPasswordButton.setText("Copy Generated Password");
         copyPasswordButton.setToolTipText("Copy the generated password or PIN so it can be pasted where you need it. This can also be done by pressing enter when the \"Use Identifier\" field is active.");
         copyPasswordButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -164,52 +214,51 @@ public class MultiPass extends javax.swing.JFrame {
             }
         });
 
-        clearClipButton.setText("Clear Clipboard");
-        clearClipButton.setToolTipText("Clear the clipboard so that the copied password or PIN can no longer be pasted.");
-        clearClipButton.addActionListener(new java.awt.event.ActionListener() {
+        clearClipboardButton.setText("Clear Clipboard");
+        clearClipboardButton.setToolTipText("Clear the clipboard so that the copied password or PIN can no longer be pasted.");
+        clearClipboardButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                clearClipButtonActionPerformed(evt);
+                clearClipboardButtonActionPerformed(evt);
             }
         });
 
-        aboutButton.setText("About");
-        aboutButton.setToolTipText("Bring up information about Multipass.");
+        aboutButton.setFont(aboutButton.getFont().deriveFont(new HashMap<TextAttribute, Integer>() {{put(TextAttribute.UNDERLINE, TextAttribute.UNDERLINE_ON);}}));
+        aboutButton.setForeground(java.awt.Color.blue);
+        aboutButton.setText("About Multipass");
+        aboutButton.setToolTipText("");
+        aboutButton.setBorder(null);
+        aboutButton.setContentAreaFilled(false);
+        aboutButton.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        aboutButton.setFocusPainted(false);
+        aboutButton.setRequestFocusEnabled(false);
         aboutButton.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 aboutButtonActionPerformed(evt);
             }
         });
 
-        clearAllFieldsButton.setText("Clear All Fields");
-        clearAllFieldsButton.setToolTipText("Clear the master password, use identifier, and generated password/PIN fields. This option doesn't clear the clipboard.");
-        clearAllFieldsButton.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                clearAllFieldsButtonActionPerformed(evt);
-            }
-        });
-
-        pinCheckBox.setText(PIN_LENGTH + "-digit PIN");
+        pinCheckBox.setText("Generate " + PIN_LENGTH + "-digit PIN");
         pinCheckBox.setToolTipText("Generate a " + PIN_LENGTH + "-digit PIN instead of a password.");
-        pinCheckBox.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                pinCheckBoxActionPerformed(evt);
+        pinCheckBox.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                pinCheckBoxStateChanged(evt);
             }
         });
 
-        showCheckBox.setText("Show");
+        showCheckBox.setText("Show Generated Password");
         showCheckBox.setToolTipText("Show the generated password or PIN.");
-        showCheckBox.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                showCheckBoxActionPerformed(evt);
+        showCheckBox.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                showCheckBoxStateChanged(evt);
             }
         });
 
         confirmCheckBox.setSelected(true);
         confirmCheckBox.setText("Confirm Master Password");
         confirmCheckBox.setToolTipText("Ensure that you have typed your master password correctly. Recommended when creating a new password.");
-        confirmCheckBox.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                confirmCheckBoxActionPerformed(evt);
+        confirmCheckBox.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                confirmCheckBoxStateChanged(evt);
             }
         });
 
@@ -221,35 +270,75 @@ public class MultiPass extends javax.swing.JFrame {
             }
         });
 
+        clearTimeSpinner.setModel(new javax.swing.SpinnerNumberModel(Integer.valueOf(10), Integer.valueOf(1), null, Integer.valueOf(1)));
+        clearTimeSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                clearTimeSpinnerStateChanged(evt);
+            }
+        });
+
+        clearTimerMinutesLabel.setText("minutes of inactivity.");
+
+        clearCheckbox.setSelected(true);
+        clearCheckbox.setText("Clear all fields after");
+        clearCheckbox.setToolTipText("Automatically clear the master password, use identifier, and generated password if you are inactive too long.");
+        clearCheckbox.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                clearCheckboxStateChanged(evt);
+            }
+        });
+
+        jLabel3.setText("Generated Password:");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(layout.createSequentialGroup()
-                            .addGap(133, 133, 133)
-                            .addComponent(showCheckBox))
-                        .addGroup(layout.createSequentialGroup()
-                            .addContainerGap()
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(pinCheckBox)
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jLabel3)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(passwordField))
+                            .addGroup(layout.createSequentialGroup()
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(clearCheckbox)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(clearTimeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(clearTimerMinutesLabel))
+                                    .addGroup(layout.createSequentialGroup()
+                                        .addComponent(confirmCheckBox)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(setConfirmButton)))
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addGroup(layout.createSequentialGroup()
+                                .addGap(21, 21, 21)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(jLabel2)
                                     .addComponent(jLabel1)
-                                    .addComponent(confirmCheckBox))))
-                        .addComponent(copyPasswordButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(clearClipButton, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 192, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                    .addComponent(masterField, javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(identifierField, javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(setConfirmButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, 1, Short.MAX_VALUE)
-                    .addComponent(clearAllFieldsButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addComponent(aboutButton, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                    .addComponent(jLabel2))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(masterField)
+                                    .addComponent(identifierField))))
+                        .addContainerGap())
+                    .addGroup(layout.createSequentialGroup()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(showCheckBox)
+                            .addComponent(pinCheckBox))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(copyPasswordButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(clearClipboardButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addGap(0, 0, Short.MAX_VALUE))))
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(aboutButton)
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -263,21 +352,28 @@ public class MultiPass extends javax.swing.JFrame {
                     .addComponent(identifierField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel3))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(showCheckBox)
+                    .addComponent(copyPasswordButton))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(clearClipboardButton)
+                    .addComponent(pinCheckBox))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(confirmCheckBox)
                     .addComponent(setConfirmButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(showCheckBox)
-                    .addComponent(pinCheckBox))
+                    .addComponent(clearTimeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(clearTimerMinutesLabel)
+                    .addComponent(clearCheckbox))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(clearAllFieldsButton)
-                    .addComponent(copyPasswordButton))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(clearClipButton)
-                    .addComponent(aboutButton)))
+                .addComponent(aboutButton)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
@@ -288,28 +384,13 @@ public class MultiPass extends javax.swing.JFrame {
     }//GEN-LAST:event_masterFieldActionPerformed
 
     /**
-     * Sets whether the password is shown in plaintext.
-     */
-    private void setShowPassword(boolean show) {
-        passwordField.setEchoChar(showCheckBox.isSelected() ? '\0'
-                : defaultEchoChar);
-    }
-
-    /**
-     * Sets show password according to the checkbox.
-     */
-    private void setShowPassword() {
-        setShowPassword(showCheckBox.isSelected());
-    }
-
-    /**
      * Checks whether the master password fields are equal. If not, pops up a
      * message to inform the user.
      * @return whether the master password fields are equal
      */
     private boolean confirmMasterPassword() {
-        String hash = confirmNode.get(CONFIRMATION_HASH_KEY, null),
-                salt = confirmNode.get(CONFIRMATION_SALT_KEY, null);
+        String hash = confirmPreferences.get(CONFIRMATION_HASH_KEY, null),
+                salt = confirmPreferences.get(CONFIRMATION_SALT_KEY, null);
         if (hash == null || salt == null) {
             return false;
         }
@@ -354,6 +435,18 @@ public class MultiPass extends javax.swing.JFrame {
         copyToClipboard(passwordField.getText());
     }//GEN-LAST:event_identifierFieldActionPerformed
 
+    @Override
+    /**
+     * Gives user the option to clear clipboard.
+     */
+    public void dispose() {
+        int option = JOptionPane.showConfirmDialog(this, "Clear clipboard?",
+                null, JOptionPane.YES_NO_OPTION);
+        if (option == JOptionPane.CLOSED_OPTION) return;
+        if (option == JOptionPane.YES_OPTION) copyToClipboard("");
+        super.dispose();
+    }
+
     /**
      * Sets the contents of the system clipboard to content.
      * @param content
@@ -363,24 +456,13 @@ public class MultiPass extends javax.swing.JFrame {
                 setContents(new StringSelection(content), null);
     }
 
-    @Override
-    /**
-     * Gives user the option to clear clipboard.
-     */
-    public void dispose() {
-        if (JOptionPane.showConfirmDialog(this, "Clear clipboard?", null,
-                JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION)
-            copyToClipboard("");
-        super.dispose();
-    }
-
     private void copyPasswordButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_copyPasswordButtonActionPerformed
         copyToClipboard(passwordField.getText());
     }//GEN-LAST:event_copyPasswordButtonActionPerformed
 
-    private void clearClipButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearClipButtonActionPerformed
+    private void clearClipboardButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearClipboardButtonActionPerformed
         copyToClipboard("");
-    }//GEN-LAST:event_clearClipButtonActionPerformed
+    }//GEN-LAST:event_clearClipboardButtonActionPerformed
 
     private static String text(AbstractButton button) {
         return "\"" + button.getText() + "\"";
@@ -420,24 +502,6 @@ public class MultiPass extends javax.swing.JFrame {
                 JOptionPane.INFORMATION_MESSAGE);
     }//GEN-LAST:event_aboutButtonActionPerformed
 
-    private void clearAllFields() {
-        masterField.setText("");
-        identifierField.setText("");
-        passwordField.setText("");
-    }
-
-    private void clearAllFieldsButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearAllFieldsButtonActionPerformed
-        clearAllFields();
-    }//GEN-LAST:event_clearAllFieldsButtonActionPerformed
-
-    private void pinCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_pinCheckBoxActionPerformed
-        generate();
-    }//GEN-LAST:event_pinCheckBoxActionPerformed
-
-    private void showCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_showCheckBoxActionPerformed
-        setShowPassword();
-    }//GEN-LAST:event_showCheckBoxActionPerformed
-
     private void masterFieldKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_masterFieldKeyReleased
         generate();
     }//GEN-LAST:event_masterFieldKeyReleased
@@ -461,15 +525,11 @@ public class MultiPass extends javax.swing.JFrame {
                     generateHash(confirmPassword, salt, CONFIRMATION_ALGORITHM))
                     .substring(0, CONFIRMATION_HASH_LENGTH);
             Arrays.fill(confirmPassword, '\0');
-            confirmNode.put(CONFIRMATION_HASH_KEY, hash);
-            confirmNode.put(CONFIRMATION_SALT_KEY, salt);
+            confirmPreferences.put(CONFIRMATION_HASH_KEY, hash);
+            confirmPreferences.put(CONFIRMATION_SALT_KEY, salt);
             generate();
         }
     }//GEN-LAST:event_setConfirmButtonActionPerformed
-
-    private void confirmCheckBoxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_confirmCheckBoxActionPerformed
-        generate();
-    }//GEN-LAST:event_confirmCheckBoxActionPerformed
 
     private void identifierFieldKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_identifierFieldKeyPressed
         generate();
@@ -479,28 +539,71 @@ public class MultiPass extends javax.swing.JFrame {
         generate();
     }//GEN-LAST:event_masterFieldKeyPressed
 
+    private void clearTimeSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_clearTimeSpinnerStateChanged
+        int clearTime = (Integer) clearTimeSpinner.getValue();
+        clearTimer.setInitialDelay(MILLIS_PER_MINUTE * clearTime);
+        if (clearCheckbox.isSelected()) clearTimer.restart();
+        clearTimerPreferences.putInt(CLEAR_TIME_KEY, clearTime);
+        String toolTipText
+                = "Automatically clear the master password, use identifier, and "
+                + "generated password if you are inactive for " + clearTime
+                + " minutes.";
+        clearCheckbox.setToolTipText(toolTipText);
+        clearTimerMinutesLabel.setToolTipText(toolTipText);
+    }//GEN-LAST:event_clearTimeSpinnerStateChanged
+
+    private void clearCheckboxStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_clearCheckboxStateChanged
+        boolean clearEnabled = clearCheckbox.isSelected();
+        if (clearEnabled) {
+            clearTimer.restart();
+        } else {
+            clearTimer.stop();
+        }
+        clearTimerPreferences.putBoolean(CLEAR_ENABLED_KEY, clearEnabled);
+    }//GEN-LAST:event_clearCheckboxStateChanged
+
+    private void confirmCheckBoxStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_confirmCheckBoxStateChanged
+        generate();
+    }//GEN-LAST:event_confirmCheckBoxStateChanged
+
+    private void showCheckBoxStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_showCheckBoxStateChanged
+        passwordField.setEchoChar(showCheckBox.isSelected() ? '\0'
+                : defaultEchoChar);
+    }//GEN-LAST:event_showCheckBoxStateChanged
+
+    private void pinCheckBoxStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_pinCheckBoxStateChanged
+        generate();
+    }//GEN-LAST:event_pinCheckBoxStateChanged
+
     /**
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                new MultiPass().setVisible(true);
+                MultiPass multiPass = new MultiPass();
+                multiPass.setVisible(true);
+                multiPass.setResizable(false);
+                //putting setResizable after setVisible fixes a bug where
+                //the frame would go to the bottom of the screen on startup
+                //the bug was found on a Mac running OSX 10.10.4
             }
         });
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton aboutButton;
-    private javax.swing.JButton clearAllFieldsButton;
-    private javax.swing.JButton clearClipButton;
+    private javax.swing.JCheckBox clearCheckbox;
+    private javax.swing.JButton clearClipboardButton;
+    private javax.swing.JSpinner clearTimeSpinner;
+    private javax.swing.JLabel clearTimerMinutesLabel;
     private javax.swing.JCheckBox confirmCheckBox;
     private javax.swing.JButton copyPasswordButton;
     private javax.swing.JTextField identifierField;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
+    private javax.swing.JLabel jLabel3;
     private javax.swing.JPasswordField masterField;
     private javax.swing.JPasswordField passwordField;
     private javax.swing.JCheckBox pinCheckBox;
