@@ -1,5 +1,5 @@
 /*
- * Multipass v2.1 Copyright 2015 Ari Zerner.
+ * Multipass v2.1.1 Copyright 2015 Ari Zerner.
  * You may use and modify this software for any purpose, provided you do not
  * give credit for its creation to anyone but the copyright holder and you do
  * not give the copyright holder credit for any modifications for which he was
@@ -24,7 +24,7 @@ import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class MultiPass extends javax.swing.JFrame {
 
-    private static final String VERSION = "v2.1",
+    private static final String VERSION = "v2.1.1",
             GENERATION_ALGORITHM = "SHA-256",
             CONFIRMATION_ALGORITHM = "SHA-256",
             PASSWORD_HEADER = "Mp2!",
@@ -74,9 +74,9 @@ public class MultiPass extends javax.swing.JFrame {
                 }
             }
         }, AWTEvent.MOUSE_EVENT_MASK | AWTEvent.KEY_EVENT_MASK);
-
         clearTimeSpinner.setValue(clearTimerPreferences.getInt(CLEAR_TIME_KEY,
                 (Integer) clearTimeSpinner.getValue()));
+        clearTimeSpinnerStateChanged(null);
         boolean clearEnabled = clearTimerPreferences.getBoolean(
                 CLEAR_ENABLED_KEY, clearCheckbox.isSelected());
         clearCheckbox.setSelected(clearEnabled);
