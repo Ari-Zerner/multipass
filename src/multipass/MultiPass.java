@@ -1,5 +1,5 @@
 /*
- * Multipass v2.1.1 Copyright 2015 Ari Zerner.
+ * Multipass v2.1.2 Copyright 2015 Ari Zerner.
  * You may use and modify this software for any purpose, provided you do not
  * give credit for its creation to anyone but the copyright holder and you do
  * not give the copyright holder credit for any modifications for which he was
@@ -19,12 +19,11 @@ import java.util.*;
 import java.util.prefs.Preferences;
 import javax.swing.*;
 import javax.swing.Timer;
-import javax.swing.UIManager.LookAndFeelInfo;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class MultiPass extends javax.swing.JFrame {
 
-    private static final String VERSION = "v2.1.1",
+    private static final String VERSION = "v2.1.2",
             GENERATION_ALGORITHM = "SHA-256",
             CONFIRMATION_ALGORITHM = "SHA-256",
             PASSWORD_HEADER = "Mp2!",
@@ -60,6 +59,7 @@ public class MultiPass extends javax.swing.JFrame {
                         masterField.setText("");
                         identifierField.setText("");
                         passwordField.setText("");
+                        masterField.requestFocusInWindow();
                     }
                 });
 
@@ -464,23 +464,46 @@ public class MultiPass extends javax.swing.JFrame {
         copyToClipboard("");
     }//GEN-LAST:event_clearClipboardButtonActionPerformed
 
+    /**
+     * Gets the text of a button for use in the about text.
+     * @param button the button to get text from
+     * @return the button's text, in quotes
+     */
     private static String text(AbstractButton button) {
         return "\"" + button.getText() + "\"";
+    }
+
+    /**
+     * Creates a component that looks like a JLabel, but has selectable and
+     * copyable text.
+     * @param text the text for the component to display
+     * @return the component
+     */
+    private static JComponent selectableLabel(String text) {
+        JTextField selectableLabel = new JTextField(text);
+        selectableLabel.setEditable(false);
+        selectableLabel.setBackground(null);
+        selectableLabel.setBorder(null);
+        return selectableLabel;
     }
 
     private void aboutButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutButtonActionPerformed
         final Object[] message = {
             "Multipass " + VERSION + " Copyright 2015 Ari Zerner.", "\n",
-            "You may use and modify this software for any purpose, provided you",
-            "do not take credit for creating it and do not give Ari Zerner credit",
-            "for any modifications he did not make.", "\n",
+            "This software may be used and modified for any purpose, provided",
+            "credit for its creation is not given to anyone but the copyright",
+            "holder and the copyright holder is not given credit for any",
+            "modifications for which he was not responsible.", "\n",
+            "If you like Multipass, please consider donating!",
+            selectableLabel("Paypal: multipassdonate@gmail.com"),
+            selectableLabel("Bitcoin: 14cMKhqkgdp6bkqTojjjmwX67jKFyUsiZq"), "\n",
             "Multipass is a tool that allows you to easily generate a secure",
             "password or PIN from a master password and a use identifier",
             "(e.g. a website name). To use it, type your master password and use",
             "identifier in their respective fields, and then either press",
-            text(copyPasswordButton) + " or check " + text(showCheckBox)
-            + ". To generate a PIN instead of",
-            "a password, simply check " + text(pinCheckBox) + ".",
+            text(copyPasswordButton) + " or check " + text(showCheckBox) + ".",
+            "To generate a PIN instead of a password, simply check",
+            text(pinCheckBox) + ".",
             "It is recommended that you set your master password as the",
             "confirmation password so that Multipass can check whether you have",
             "entered your master password correctly. To do this, press",
