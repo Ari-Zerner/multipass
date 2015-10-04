@@ -1,9 +1,6 @@
 /*
- * Multipass v2.1.2 Copyright 2015 Ari Zerner.
- * You may use and modify this software for any purpose, provided you do not
- * give credit for its creation to anyone but the copyright holder and you do
- * not give the copyright holder credit for any modifications for which he was
- * not responsible.
+ * Multipass v3.0
+ * This software was created by Ari Zerner and released without copyright.
  */
 package multipass;
 
@@ -21,20 +18,20 @@ import javax.swing.*;
 import javax.swing.Timer;
 import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
-public class MultiPass extends javax.swing.JFrame {
+public class MultiPass extends JFrame {
 
-    private static final String VERSION = "v2.1.2",
+    private static final String VERSION = "v3.0",
             GENERATION_ALGORITHM = "SHA-256",
             CONFIRMATION_ALGORITHM = "SHA-256",
-            PASSWORD_HEADER = "Mp2!",
-            HEADER_MNEMONIC = "Multipass 2!",
+            PASSWORD_HEADER = "Mp3_",
+            HEADER_MNEMONIC = "Multipass 3 ________________",
             CONFIRMATION_HASH_KEY = "hash",
             CONFIRMATION_SALT_KEY = "salt",
             CLEAR_ENABLED_KEY = "enabled",
             CLEAR_TIME_KEY = "time";
     private static final int CONFIRMATION_HASH_LENGTH = 16,
             PASSWORD_LENGTH_WITHOUT_HEADER = 16, PIN_LENGTH = 4,
-            MILLIS_PER_MINUTE = 60000;
+            MILLIS_PER_MINUTE = 60000, PASSWORD_RADIX = Character.MAX_RADIX;
     private char defaultEchoChar = '*';
     private Preferences preferences = Preferences.userRoot().node("multipass"),
             confirmPreferences = preferences.node("confirm"),
@@ -115,13 +112,17 @@ public class MultiPass extends javax.swing.JFrame {
      * Generates a password from a master password and an identifier.
      * @param master a secure password
      * @param identifier an identifier for the use of the password
-     * @param length the desired password length
      */
     private static String generatePassword(char[] master, String identifier) {
-        String password = PASSWORD_HEADER;
-        password += printHexBinary(
+        String password = new BigInteger(1,
                 generateHash(master, identifier, GENERATION_ALGORITHM))
-                .substring(0, PASSWORD_LENGTH_WITHOUT_HEADER).toLowerCase();
+                .toString(PASSWORD_RADIX);
+        while (password.length() < PASSWORD_LENGTH_WITHOUT_HEADER)
+            password = "0" + password;
+        password = password.substring(password.length()
+                - PASSWORD_LENGTH_WITHOUT_HEADER, password.length())
+                .toLowerCase();
+        password = PASSWORD_HEADER + password;
         return password;
     }
 
@@ -473,30 +474,11 @@ public class MultiPass extends javax.swing.JFrame {
         return "\"" + button.getText() + "\"";
     }
 
-    /**
-     * Creates a component that looks like a JLabel, but has selectable and
-     * copyable text.
-     * @param text the text for the component to display
-     * @return the component
-     */
-    private static JComponent selectableLabel(String text) {
-        JTextField selectableLabel = new JTextField(text);
-        selectableLabel.setEditable(false);
-        selectableLabel.setBackground(null);
-        selectableLabel.setBorder(null);
-        return selectableLabel;
-    }
-
     private void aboutButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_aboutButtonActionPerformed
         final Object[] message = {
-            "Multipass " + VERSION + " Copyright 2015 Ari Zerner.", "\n",
-            "This software may be used and modified for any purpose, provided",
-            "credit for its creation is not given to anyone but the copyright",
-            "holder and the copyright holder is not given credit for any",
-            "modifications for which he was not responsible.", "\n",
-            "If you like Multipass, please consider donating!",
-            selectableLabel("Paypal: multipassdonate@gmail.com"),
-            selectableLabel("Bitcoin: 14cMKhqkgdp6bkqTojjjmwX67jKFyUsiZq"), "\n",
+            "Multipass " + VERSION,
+            "This software was created by Ari Zerner and released without copyright.",
+            "\n",
             "Multipass is a tool that allows you to easily generate a secure",
             "password or PIN from a master password and a use identifier",
             "(e.g. a website name). To use it, type your master password and use",
@@ -514,9 +496,15 @@ public class MultiPass extends javax.swing.JFrame {
             "To generate passwords and PINs, Multipass concatenates the master",
             "password and the identifier, separated by a space. It then uses the",
             GENERATION_ALGORITHM + " algorithm to hash the concatenation.",
-            "To make a password, Multipass represents the hash as a lowercase",
-            "hex string and concatenates the first 16 characters to the header,",
-            "which is \"" + PASSWORD_HEADER + "\" (" + HEADER_MNEMONIC + ").",
+            "To make a password, Multipass represents the hash as an unsigned",
+            "integer in base " + PASSWORD_RADIX + " using lowercase letters."
+            + " That integer is padded with",
+            "leading zeros if necessary, and its last "
+            + PASSWORD_LENGTH_WITHOUT_HEADER
+            + " digits are appended to the",
+            "end of the header, which is \"" + PASSWORD_HEADER + "\" ("
+            + HEADER_MNEMONIC + "),",
+            "and the result is used as the password.",
             "To make a PIN, Multipass represents the hash as an unsigned decimal",
             "integer, and uses the last 4 digits, padding with zeros if necessary."
         };
