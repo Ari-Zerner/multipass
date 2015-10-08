@@ -1,5 +1,5 @@
 /*
- * Multipass 4.0
+ * Multipass 4.1
  * This software was created by Ari Zerner and released without copyright.
  */
 package multipass;
@@ -23,23 +23,26 @@ import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class MultiPass extends JFrame {
 
-    private static final String VERSION = "4.0",
+    private static final String VERSION = "4.1",
             GENERATION_ALGORITHM = "SHA-256",
             CONFIRMATION_ALGORITHM = "SHA-256",
             PASSWORD_HEADER = "Mp4",
             HEADER_MNEMONIC = "Multipass 4",
             CONFIRMATION_HASH_KEY = "hash",
             CONFIRMATION_SALT_KEY = "salt",
-            CLEAR_ENABLED_KEY = "enabled",
-            CLEAR_TIME_KEY = "time",
+            CLEAR_TIMER_ENABLED_KEY = "enabled",
+            CLEAR_TIMER_TIME_KEY = "time",
+            PASSWORD_USE_MNEMONIC_WORDS_KEY = "mnemonicWords",
+            PASSWORD_LENGTH_KEY = "length",
             WORD_LIST_FILE_NAME = "wordlist.txt",
             WORD_LIST_SEPARATOR = ": ";
     private static final int CONFIRMATION_HASH_LENGTH = 16,
-            PASSWORD_WORDS = 6, HEX_DIGITS_PER_WORD = 4, PIN_LENGTH = 4,
-            MILLIS_PER_MINUTE = 60000;
-    private Preferences preferences = Preferences.userRoot().node("multipass"),
-            confirmPreferences = preferences.node("confirm"),
-            clearTimerPreferences = preferences.node("clearTimer");
+            HEX_DIGITS_PER_WORD = 4, PIN_LENGTH = 4, MILLIS_PER_MINUTE = 60000;
+    private static final Preferences PREFERENCES = Preferences.userRoot().node(
+            "multipass"),
+            CONFIRM_PREFERENCES = PREFERENCES.node("confirm"),
+            CLEAR_TIMER_PREFERENCES = PREFERENCES.node("clearTimer"),
+            PASSWORD_PREFERENCES = PREFERENCES.node("password");
     private Timer clearTimer;
     private Map<String, String> wordList;
 
@@ -47,32 +50,9 @@ public class MultiPass extends JFrame {
     public MultiPass() {
         initComponents();
         initClearTimer();
+        loadClearTimerPreferences();
+        loadPasswordPreferences();
         loadWordList();
-    }
-
-    /**
-     * Loads the word list from disk.
-     */
-    private void loadWordList() {
-        try (InputStream wordListIn = getClass().getResourceAsStream(
-                WORD_LIST_FILE_NAME)) {
-            if (wordListIn == null) {
-                throw new FileNotFoundException();
-            }
-            Scanner scan = new Scanner(wordListIn);
-            wordList = new HashMap<>();
-            while (scan.hasNextLine()) {
-                String[] lineSplit = scan.nextLine().split(WORD_LIST_SEPARATOR);
-                String hexDigits = lineSplit[0], word = lineSplit[1];
-                wordList.put(hexDigits, word);
-            }
-        } catch (IOException ex) {
-            JOptionPane.showMessageDialog(this,
-                    "Error loading word list. Mnemonic words disabled.",
-                    "Error", JOptionPane.ERROR_MESSAGE);
-            useMnemonicWordsCheckBox.setSelected(false);
-            useMnemonicWordsCheckBox.setEnabled(false);
-        }
     }
 
     /**
@@ -102,13 +82,62 @@ public class MultiPass extends JFrame {
                 }
             }
         }, AWTEvent.MOUSE_EVENT_MASK | AWTEvent.KEY_EVENT_MASK);
-        clearTimeSpinner.setValue(clearTimerPreferences.getInt(CLEAR_TIME_KEY,
+    }
+
+    /**
+     * Loads the preferences in the clearTimer node.
+     */
+    private void loadClearTimerPreferences() {
+        clearTimeSpinner.setValue(CLEAR_TIMER_PREFERENCES.getInt(
+                CLEAR_TIMER_TIME_KEY,
                 (Integer) clearTimeSpinner.getValue()));
         clearTimeSpinnerStateChanged(null);
-        boolean clearEnabled = clearTimerPreferences.getBoolean(
-                CLEAR_ENABLED_KEY, clearCheckbox.isSelected());
+        boolean clearEnabled = CLEAR_TIMER_PREFERENCES.getBoolean(
+                CLEAR_TIMER_ENABLED_KEY, clearCheckbox.isSelected());
         clearCheckbox.setSelected(clearEnabled);
         if (clearEnabled) clearTimer.start();
+    }
+
+    /**
+     * Loads the preferences in the password node.
+     */
+    private void loadPasswordPreferences() {
+        useMnemonicWordsCheckBox.setSelected(PASSWORD_PREFERENCES.getBoolean(
+                PASSWORD_USE_MNEMONIC_WORDS_KEY,
+                useMnemonicWordsCheckBox.isSelected()));
+        int passwordLength = PASSWORD_PREFERENCES.getInt(PASSWORD_LENGTH_KEY,
+                (Integer) passwordLengthSpinner.getValue());
+        SpinnerNumberModel model = (SpinnerNumberModel) passwordLengthSpinner
+                .getModel();
+        int min = (Integer) model.getMinimum(),
+                max = (Integer) model.getMaximum();
+        passwordLengthSpinner.setValue(
+                Math.max(min, Math.min(max, passwordLength)));
+    }
+
+    /**
+     * Loads the word list from disk.
+     */
+    private void loadWordList() {
+        try (InputStream wordListIn = getClass().getResourceAsStream(
+                WORD_LIST_FILE_NAME)) {
+            if (wordListIn == null) {
+                throw new FileNotFoundException();
+            }
+            Scanner scan = new Scanner(wordListIn);
+            wordList = new HashMap<>();
+            while (scan.hasNextLine()) {
+                String[] lineSplit = scan.nextLine().split(WORD_LIST_SEPARATOR);
+                String hexDigits = lineSplit[0], word = lineSplit[1];
+                wordList.put(hexDigits, word);
+            }
+        } catch (IOException ex) {
+            JOptionPane.showMessageDialog(this,
+                    "Error loading word list. Mnemonic words disabled.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            useMnemonicWordsCheckBox.setSelected(false);
+            useMnemonicWordsCheckBox.setEnabled(false);
+        }
     }
 
     /**
@@ -148,7 +177,8 @@ public class MultiPass extends JFrame {
         String hash = printHexBinary(generateHash(master, identifier,
                 GENERATION_ALGORITHM)).toLowerCase();
         String password = PASSWORD_HEADER;
-        for (int i = 0; i < PASSWORD_WORDS; i++) {
+        int passwordLength = (Integer) passwordLengthSpinner.getValue();
+        for (int i = 0; i < passwordLength; i++) {
             password += "_";
             String hexDigits = hash.substring(0, HEX_DIGITS_PER_WORD);
             password += useMnemonicWordsCheckBox.isSelected() ? wordList.get(
@@ -167,7 +197,7 @@ public class MultiPass extends JFrame {
         int pin = new BigInteger(1,
                 generateHash(master, identifier, GENERATION_ALGORITHM))
                 .mod(BigInteger.TEN.pow(PIN_LENGTH)).intValue();
-        return String.format("%04d", pin);
+        return String.format("%0" + PIN_LENGTH + "d", pin);
     }
 
     /**
@@ -196,6 +226,9 @@ public class MultiPass extends JFrame {
         clearCheckbox = new javax.swing.JCheckBox();
         jLabel3 = new javax.swing.JLabel();
         useMnemonicWordsCheckBox = new javax.swing.JCheckBox();
+        passwordLengthSpinner = new javax.swing.JSpinner();
+        jLabel4 = new javax.swing.JLabel();
+        jLabel5 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Multipass " + VERSION);
@@ -334,6 +367,18 @@ public class MultiPass extends JFrame {
             }
         });
 
+        passwordLengthSpinner.setModel(new javax.swing.SpinnerNumberModel(6, 3, 16, 1));
+        passwordLengthSpinner.setToolTipText("How many words (or digit groups) the generated password should have.");
+        passwordLengthSpinner.addChangeListener(new javax.swing.event.ChangeListener() {
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                passwordLengthSpinnerStateChanged(evt);
+            }
+        });
+
+        jLabel4.setText("words.");
+
+        jLabel5.setText("Password length:");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -344,7 +389,7 @@ public class MultiPass extends JFrame {
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jLabel3)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(passwordField))
+                        .addComponent(passwordField, javax.swing.GroupLayout.DEFAULT_SIZE, 514, Short.MAX_VALUE))
                     .addGroup(layout.createSequentialGroup()
                         .addGap(21, 21, 21)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
@@ -355,6 +400,14 @@ public class MultiPass extends JFrame {
                             .addComponent(masterField)
                             .addComponent(identifierField)))
                     .addGroup(layout.createSequentialGroup()
+                        .addComponent(clearCheckbox)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(clearTimeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(clearTimerMinutesLabel)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(aboutButton))
+                    .addGroup(layout.createSequentialGroup()
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(layout.createSequentialGroup()
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -363,22 +416,20 @@ public class MultiPass extends JFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                                     .addComponent(copyPasswordButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(clearClipboardButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(clearCheckbox)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(clearTimeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, 53, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(clearTimerMinutesLabel))
+                                    .addComponent(clearClipboardButton, javax.swing.GroupLayout.PREFERRED_SIZE, 206, javax.swing.GroupLayout.PREFERRED_SIZE)))
                             .addGroup(layout.createSequentialGroup()
                                 .addComponent(confirmCheckBox)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(setConfirmButton)))
-                        .addGap(0, 214, Short.MAX_VALUE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(useMnemonicWordsCheckBox)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(aboutButton)))
+                                .addComponent(setConfirmButton))
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(useMnemonicWordsCheckBox)
+                                .addGap(34, 34, 34)
+                                .addComponent(jLabel5)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(passwordLengthSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jLabel4)))
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -397,6 +448,12 @@ public class MultiPass extends JFrame {
                     .addComponent(jLabel3))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(useMnemonicWordsCheckBox)
+                    .addComponent(passwordLengthSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel4)
+                    .addComponent(jLabel5))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(showCheckBox)
                     .addComponent(copyPasswordButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -411,12 +468,8 @@ public class MultiPass extends JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(clearTimeSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(clearTimerMinutesLabel)
-                    .addComponent(clearCheckbox))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(useMnemonicWordsCheckBox)
-                    .addComponent(aboutButton))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(clearCheckbox)
+                    .addComponent(aboutButton)))
         );
 
         pack();
@@ -432,8 +485,8 @@ public class MultiPass extends JFrame {
      * @return whether the master password fields are equal
      */
     private boolean confirmMasterPassword() {
-        String hash = confirmPreferences.get(CONFIRMATION_HASH_KEY, null),
-                salt = confirmPreferences.get(CONFIRMATION_SALT_KEY, null);
+        String hash = CONFIRM_PREFERENCES.get(CONFIRMATION_HASH_KEY, null),
+                salt = CONFIRM_PREFERENCES.get(CONFIRMATION_SALT_KEY, null);
         if (hash == null || salt == null) {
             return false;
         }
@@ -542,9 +595,9 @@ public class MultiPass extends JFrame {
             "which is " + PASSWORD_HEADER + " (" + HEADER_MNEMONIC
             + "). Next, it represents the hash as a",
             "hex string. It breaks the hash into groups of "
-            + HEX_DIGITS_PER_WORD + " digits and adds the",
-            "first " + PASSWORD_WORDS
-            + " groups to the password, each preceded by an underscore.",
+            + HEX_DIGITS_PER_WORD + " digits and appends",
+            "groups starting from the beginning, each preceded by an",
+            "underscore, until the user-specified amount have been appended.",
             "If " + text(useMnemonicWordsCheckBox)
             + " is enabled, it replaces the groups of",
             "digits with the corresponding words from the word list.",
@@ -579,8 +632,8 @@ public class MultiPass extends JFrame {
                     generateHash(confirmPassword, salt, CONFIRMATION_ALGORITHM))
                     .substring(0, CONFIRMATION_HASH_LENGTH);
             Arrays.fill(confirmPassword, '\0');
-            confirmPreferences.put(CONFIRMATION_HASH_KEY, hash);
-            confirmPreferences.put(CONFIRMATION_SALT_KEY, salt);
+            CONFIRM_PREFERENCES.put(CONFIRMATION_HASH_KEY, hash);
+            CONFIRM_PREFERENCES.put(CONFIRMATION_SALT_KEY, salt);
             generate();
         }
     }//GEN-LAST:event_setConfirmButtonActionPerformed
@@ -597,7 +650,7 @@ public class MultiPass extends JFrame {
         int clearTime = (Integer) clearTimeSpinner.getValue();
         clearTimer.setInitialDelay(MILLIS_PER_MINUTE * clearTime);
         if (clearCheckbox.isSelected()) clearTimer.restart();
-        clearTimerPreferences.putInt(CLEAR_TIME_KEY, clearTime);
+        CLEAR_TIMER_PREFERENCES.putInt(CLEAR_TIMER_TIME_KEY, clearTime);
         String toolTipText
                 = "Automatically clear the master password, use identifier, and "
                 + "generated password if you are inactive for " + clearTime
@@ -613,7 +666,8 @@ public class MultiPass extends JFrame {
         } else {
             clearTimer.stop();
         }
-        clearTimerPreferences.putBoolean(CLEAR_ENABLED_KEY, clearEnabled);
+        CLEAR_TIMER_PREFERENCES
+                .putBoolean(CLEAR_TIMER_ENABLED_KEY, clearEnabled);
     }//GEN-LAST:event_clearCheckboxStateChanged
 
     private void confirmCheckBoxStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_confirmCheckBoxStateChanged
@@ -631,7 +685,15 @@ public class MultiPass extends JFrame {
 
     private void useMnemonicWordsCheckBoxStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_useMnemonicWordsCheckBoxStateChanged
         generate();
+        PASSWORD_PREFERENCES.putBoolean(PASSWORD_USE_MNEMONIC_WORDS_KEY,
+                useMnemonicWordsCheckBox.isSelected());
     }//GEN-LAST:event_useMnemonicWordsCheckBoxStateChanged
+
+    private void passwordLengthSpinnerStateChanged(javax.swing.event.ChangeEvent evt) {//GEN-FIRST:event_passwordLengthSpinnerStateChanged
+        generate();
+        PASSWORD_PREFERENCES.putInt(PASSWORD_LENGTH_KEY,
+                (Integer) passwordLengthSpinner.getValue());
+    }//GEN-LAST:event_passwordLengthSpinnerStateChanged
 
     /**
      * @param args the command line arguments
@@ -660,8 +722,11 @@ public class MultiPass extends JFrame {
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JPasswordField masterField;
     private javax.swing.JPasswordField passwordField;
+    private javax.swing.JSpinner passwordLengthSpinner;
     private javax.swing.JCheckBox pinCheckBox;
     private javax.swing.JButton setConfirmButton;
     private javax.swing.JCheckBox showCheckBox;
