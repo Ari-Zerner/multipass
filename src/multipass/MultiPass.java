@@ -1,9 +1,10 @@
 /*
- * Multipass 4.1
+ * Multipass 4.2
  * This software was created by Ari Zerner and released without copyright.
  */
 package multipass;
 
+import com.sun.xml.internal.fastinfoset.tools.StAX2SAXReader;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.event.*;
@@ -23,7 +24,7 @@ import static javax.xml.bind.DatatypeConverter.printHexBinary;
 
 public class MultiPass extends JFrame {
 
-    private static final String VERSION = "4.1",
+    private static final String VERSION = "4.2",
             GENERATION_ALGORITHM = "SHA-256",
             CONFIRMATION_ALGORITHM = "SHA-256",
             PASSWORD_HEADER = "Mp4",
@@ -141,6 +142,22 @@ public class MultiPass extends JFrame {
     }
 
     /**
+     * Generates a hash from text using the given algorithm.
+     * @param text
+     * @param algorithm
+     * @return the hash as a byte[]
+     */
+    private byte[] generateHash(byte[] text, String algorithm) {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
+        return digest.digest(text);
+    }
+
+    /**
      * Generates a hash from text + " " + salt using the given algorithm.
      * @param text
      * @param salt
@@ -150,12 +167,6 @@ public class MultiPass extends JFrame {
     private byte[] generateHash(char[] text, String salt,
             String algorithm) {
         byte[] prehash = new byte[text.length + salt.length() + 1];
-        MessageDigest digest;
-        try {
-            digest = MessageDigest.getInstance(algorithm);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        }
         for (int i = 0; i < text.length; i++) {
             prehash[i] = (byte) text[i];
         }
@@ -163,7 +174,7 @@ public class MultiPass extends JFrame {
         for (int i = 0; i < salt.length(); i++) {
             prehash[i + text.length + 1] = (byte) salt.charAt(i);
         }
-        byte[] hash = digest.digest(prehash);
+        byte[] hash = generateHash(prehash, algorithm);
         Arrays.fill(prehash, (byte) 0);
         return hash;
     }
@@ -229,6 +240,8 @@ public class MultiPass extends JFrame {
         passwordLengthSpinner = new javax.swing.JSpinner();
         jLabel4 = new javax.swing.JLabel();
         jLabel5 = new javax.swing.JLabel();
+        generateRandomlyButton = new javax.swing.JButton();
+        clearButton = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
         setTitle("Multipass " + VERSION);
@@ -379,6 +392,22 @@ public class MultiPass extends JFrame {
 
         jLabel5.setText("Password length:");
 
+        generateRandomlyButton.setText("Generate Randomly");
+        generateRandomlyButton.setToolTipText("Generate a random master password and use identifier, resulting in a completely random generated password.");
+        generateRandomlyButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                generateRandomlyButtonActionPerformed(evt);
+            }
+        });
+
+        clearButton.setText("Clear");
+        clearButton.setToolTipText("Clear the master password and use identifier.");
+        clearButton.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                clearButtonActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
@@ -390,15 +419,6 @@ public class MultiPass extends JFrame {
                         .addComponent(jLabel3)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(passwordField, javax.swing.GroupLayout.DEFAULT_SIZE, 514, Short.MAX_VALUE))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(21, 21, 21)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addComponent(jLabel1)
-                            .addComponent(jLabel2))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(masterField)
-                            .addComponent(identifierField)))
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(clearCheckbox)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -429,7 +449,21 @@ public class MultiPass extends JFrame {
                                 .addComponent(passwordLengthSpinner, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jLabel4)))
-                        .addGap(0, 0, Short.MAX_VALUE)))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(21, 21, 21)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(jLabel1)
+                            .addComponent(jLabel2))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(generateRandomlyButton)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(clearButton)
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addComponent(masterField)
+                            .addComponent(identifierField))))
                 .addContainerGap())
         );
         layout.setVerticalGroup(
@@ -442,6 +476,10 @@ public class MultiPass extends JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
                     .addComponent(identifierField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(generateRandomlyButton)
+                    .addComponent(clearButton))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(passwordField, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -695,6 +733,25 @@ public class MultiPass extends JFrame {
                 (Integer) passwordLengthSpinner.getValue());
     }//GEN-LAST:event_passwordLengthSpinnerStateChanged
 
+    private void generateRandomlyButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_generateRandomlyButtonActionPerformed
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = generateHash(new byte[0], GENERATION_ALGORITHM);
+        random.nextBytes(bytes);
+        masterField.setText(printHexBinary(generateHash(bytes,
+                GENERATION_ALGORITHM)).toLowerCase());
+        random.nextBytes(bytes);
+        identifierField.setText(printHexBinary(generateHash(bytes,
+                GENERATION_ALGORITHM)).toLowerCase());
+        confirmCheckBox.setSelected(false);
+        generate();
+    }//GEN-LAST:event_generateRandomlyButtonActionPerformed
+
+    private void clearButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_clearButtonActionPerformed
+        masterField.setText("");
+        identifierField.setText("");
+        generate();
+    }//GEN-LAST:event_clearButtonActionPerformed
+
     /**
      * @param args the command line arguments
      */
@@ -712,12 +769,14 @@ public class MultiPass extends JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton aboutButton;
+    private javax.swing.JButton clearButton;
     private javax.swing.JCheckBox clearCheckbox;
     private javax.swing.JButton clearClipboardButton;
     private javax.swing.JSpinner clearTimeSpinner;
     private javax.swing.JLabel clearTimerMinutesLabel;
     private javax.swing.JCheckBox confirmCheckBox;
     private javax.swing.JButton copyPasswordButton;
+    private javax.swing.JButton generateRandomlyButton;
     private javax.swing.JTextField identifierField;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
